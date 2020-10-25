@@ -99,6 +99,7 @@
     border: none;
     cursor: pointer;
     background-color: #ebebeb;
+    outline: none;
 }
 .fa-sync-alt,
 .fa-play,
