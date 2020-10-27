@@ -12,9 +12,6 @@ class App extends React.Component{
        segs: 0,//seconds
        isSession: true,
        isRunning: false,
-       currentID : null,
-       currentSession: 25,
-       currentBreak: 5,
        iconPlay: "fa-play"
      }
 
@@ -22,10 +19,9 @@ class App extends React.Component{
      this.incrementBreak = this.incrementBreak.bind(this);
      this.decrementSession = this.decrementSession.bind(this);
      this.decrementBreak = this.decrementBreak.bind(this);
-     this.startSession = this.startSession.bind(this);
-     this.startBreak = this.startBreak.bind(this);
+     this.start = this.start.bind(this);
      this.stop = this.stop.bind(this);
-     this.resetAll = this.resetAll.bind(this);
+     this.resetDefault = this.resetDefault.bind(this);
      this.run_stop = this.run_stop.bind(this);
      this.playAudio = this.playAudio.bind(this);
      this.stopAudio = this.stopAudio.bind(this);
@@ -38,8 +34,7 @@ class App extends React.Component{
      this.setState((state)=>{
         let session = state.session + 1 > 60 ? 60 : state.session + 1;
         return {
-           session:  session,
-           currentSession: session
+           session
         }
      });
   }
@@ -52,7 +47,6 @@ class App extends React.Component{
       let bre = state.break + 1 > 60 ? 60 : state.break + 1;
        return {
           break: bre,
-          currentBreak: bre
        }
     });
  }
@@ -63,8 +57,7 @@ class App extends React.Component{
     this.setState((state)=>{
      let session = state.session - 1? state.session -1 : 1; 
      return {
-       session,
-       currentSession: session
+       session
      }
    });
  }
@@ -82,58 +75,34 @@ class App extends React.Component{
  });
 }
 
-startSession(){
-     let id = setInterval(()=>{
+start(){
+     this.interval_ID = setInterval(()=>{
         this.setState((state)=>{
-         if(state.currentSession === 0 && state.segs === 0){
-            this.stop();
-            this.resetSession();
-            this.startBreak();
-            return this.state;
+          let min = state.isSession ? state.session : state.break;
+         if(min === 0 && state.segs === 0){
+            if(state.isSession){
+               this.stop();
+               this.resetSession();
+               this.start();
+            }else{
+               this.stop();
+               this.resetBreak();
+               this.start();
+            }
+            return {};
           }
-         let currentSession = state.segs === 0? state.currentSession - 1 : state.currentSession;
+         min = state.segs === 0? min - 1 : min;
          let segs = state.segs - 1;
          segs = segs < 0? 59 : segs;
 
-         if(state.currentSession === 0 && state.segs === 2){
+         if(min === 0 && state.segs === 2){
             setTimeout(this.playAudio, 1000);
           }
-         return {
-            segs,
-            currentSession,
-            isSession: true,
-            isRunning: true
-         }
+
+          return state.isSession ? {segs, session : min, isRunning: true} : {segs, break : min, isRunning: true}
         });
 
      }, 1000);
-     this.setState({ currentID : id });
-}
-
-startBreak(){
-   let id = setInterval(()=>{ 
-      this.setState((state)=>{
-         if(state.currentBreak === 0 && this.state.segs === 0){
-             this.stop();
-             this.resetBreak();
-             this.startSession();
-             return this.state;
-         }
-       let currentBreak = state.segs === 0? state.currentBreak - 1 : state.currentBreak;
-       let segs = state.segs - 1;
-       segs = segs < 0 ? 59 : segs;
-       if(state.currentBreak === 0 && state.segs === 2){
-           setTimeout(this.playAudio, 1000);
-       }
-       return {
-          segs,
-          currentBreak,
-          isSession: false,
-          isRunning: true
-       }
-      });
-   }, 1000);
-   this.setState({ currentID : id });
 }
 
 
@@ -142,36 +111,22 @@ run_stop(){
        this.stop();
        this.setState({iconPlay: "fa-play"});
     }else{
-       if(this.state.isSession){
-           this.startSession();
-       }else{
-           this.startBreak();
-       }
+       this.start();
        this.setState({iconPlay: "fa-pause"});
     }
 }
 
 
 stop(){
-   this.setState((state)=>{
-      clearInterval(state.currentID);
-      return {isRunning : false};
-   });
-}
-
-resetAll(){
-   this.stop();
-   this.setState({session: 25, break: 5, iconPlay: "fa-play"})
-   this.resetSession();
-   this.resetBreak();
-   this.stopAudio();
+   clearInterval(this.interval_ID);
+   this.setState({isRunning : false});
 }
 
 resetSession(){
    this.setState(state => {
       return {
          isSession: false,
-         currentSession : state.session,
+         session: 25,
          segs : 0
       }
    })
@@ -181,10 +136,24 @@ resetBreak(){
    this.setState(state => {
        return {
           isSession: true,
-          currentBreak : state.break,
+          break: 5,
           segs : 0
        }
    });
+}
+
+resetDefault(){
+   this.stop();
+   this.setState(state => {
+      return {
+         isSession: true,
+         session: 25,
+         break: 5,
+         segs : 0,
+         iconPlay: "fa-play"
+      }
+  });
+  this.stopAudio();
 }
 
 playAudio(){
@@ -201,11 +170,11 @@ stopAudio(){
         let time = "";
         if(this.state.isSession){
             let seg = this.state.segs < 10 ? `0${this.state.segs}`: this.state.segs;
-            let min = this.state.currentSession < 10 ? `0${this.state.currentSession}` : this.state.currentSession;
+            let min = this.state.session < 10 ? `0${this.state.session}` : this.state.session;
             time = `${min}:${seg}`;
         }else{
             let seg = this.state.segs < 10 ? `0${this.state.segs}`: this.state.segs;
-            let min = this.state.currentBreak < 10 ? `0${this.state.currentBreak}` : this.state.currentBreak;
+            let min = this.state.break < 10 ? `0${this.state.break}` : this.state.break;
             time = `${min}:${seg}`;          
         }
     return (
@@ -263,7 +232,7 @@ stopAudio(){
                      { /*fas fa-pause  */} 
                       <button 
                              id="reset"
-                             onClick={this.resetAll}>
+                             onClick={this.resetDefault}>
                          <i className="fas fa-sync-alt"></i>
                       </button>
                  </div>
