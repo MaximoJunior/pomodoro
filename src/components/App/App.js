@@ -9,6 +9,7 @@ class App extends React.Component{
      this.state = {
        session: 25,
        break: 5,
+       min: 0, //minutes
        segs: 0,//seconds
        isSession: true,
        isRunning: false,
@@ -34,7 +35,8 @@ class App extends React.Component{
      this.setState((state)=>{
         let session = state.session + 1 > 60 ? 60 : state.session + 1;
         return {
-           session
+           session,
+           min: session
         }
      });
   }
@@ -57,7 +59,8 @@ class App extends React.Component{
     this.setState((state)=>{
      let session = state.session - 1? state.session -1 : 1; 
      return {
-       session
+       session,
+       min: session
      }
    });
  }
@@ -78,28 +81,29 @@ class App extends React.Component{
 start(){
      this.interval_ID = setInterval(()=>{
         this.setState((state)=>{
-          let min = state.isSession ? state.session : state.break;
-         if(min === 0 && state.segs === 0){
+         let min;
+         if(state.min === 0 && state.segs === 0){
             if(state.isSession){
                this.stop();
-               this.resetSession();
+               this.switchToBreak();
                this.start();
             }else{
                this.stop();
-               this.resetBreak();
+               this.switchToSession();
                this.start();
             }
-            return {};
+            return state;
           }
-         min = state.segs === 0? min - 1 : min;
+         min = state.segs === 0? state.min - 1 : state.min;
          let segs = state.segs - 1;
          segs = segs < 0? 59 : segs;
 
-         if(min === 0 && state.segs === 2){
+         if(state.min === 0 && state.segs === 2){
             setTimeout(this.playAudio, 1000);
           }
 
-          return state.isSession ? {segs, session : min, isRunning: true} : {segs, break : min, isRunning: true}
+          return {segs, min, isRunning: true};
+
         });
 
      }, 1000);
@@ -122,22 +126,22 @@ stop(){
    this.setState({isRunning : false});
 }
 
-resetSession(){
+switchToSession(){
    this.setState(state => {
       return {
-         isSession: false,
-         session: 25,
-         segs : 0
+         isSession: true,
+         min: state.session,
+         segs: 0
       }
    })
 }
 
-resetBreak(){
+switchToBreak(){
    this.setState(state => {
        return {
-          isSession: true,
-          break: 5,
-          segs : 0
+          isSession: false,
+          min: state.break,
+          segs: 0
        }
    });
 }
@@ -150,6 +154,7 @@ resetDefault(){
          session: 25,
          break: 5,
          segs : 0,
+         min: 25,
          iconPlay: "fa-play"
       }
   });
@@ -166,17 +171,16 @@ stopAudio(){
    AUDIO.currentTime = 0;
 }
 
+componentDidMount(){
+   this.setState(state => ({ min: state.session}));
+}
+
   render(){
         let time = "";
-        if(this.state.isSession){
-            let seg = this.state.segs < 10 ? `0${this.state.segs}`: this.state.segs;
-            let min = this.state.session < 10 ? `0${this.state.session}` : this.state.session;
-            time = `${min}:${seg}`;
-        }else{
-            let seg = this.state.segs < 10 ? `0${this.state.segs}`: this.state.segs;
-            let min = this.state.break < 10 ? `0${this.state.break}` : this.state.break;
-            time = `${min}:${seg}`;          
-        }
+        let seg = this.state.segs < 10 ? `0${this.state.segs}`: this.state.segs;
+        let min = this.state.min
+        min = min < 10 ? `0${min}` : min;
+        time = `${min}:${seg}`;
     return (
       <div className="container">
          <h1 className="title">Pomodoro</h1>
